@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个股三维深度分析 · 看板</title>
+<style>
+:root{
+  --red:#e23b3b; --green:#1faa59;
+  --bg:#f4f6fa; --card:#fff; --ink:#1f2733; --sub:#6b7785;
+  --brand:#2b5ce6; --brand2:#15b8a6; --amber:#f5a623;
+  --shadow:0 2px 16px rgba(20,40,80,.07);
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;
+  padding:28px 20px 50px;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1200px;margin:0 auto}
+.up{color:var(--red);font-weight:600}
+.down{color:var(--green);font-weight:600}
+.muted{color:var(--sub);font-size:13px}
+
+/* Header */
+.hero{
+  background:linear-gradient(130deg,#142242 0%,#1f4c8c 55%,#2b5ce6 100%);
+  color:#fff;border-radius:var(--radius);padding:28px 34px;
+  box-shadow:var(--shadow);margin-bottom:24px;position:relative;overflow:hidden;
+}
+.hero:after{content:"";position:absolute;right:-50px;top:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 70%);border-radius:50%}
+.hero h1{font-size:26px;display:flex;align-items:center;gap:8px}
+.hero p{opacity:.85;font-size:14px;margin-top:4px}
+.hero .count{display:inline-block;margin-top:10px;background:rgba(255,255,255,.15);padding:4px 14px;border-radius:30px;font-size:13px}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+
+/* Card */
+.card{
+  background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:20px 22px;transition:.2s;border:1px solid transparent;
+  display:flex;flex-direction:column;
+}
+.card:hover{border-color:var(--brand);box-shadow:0 4px 24px rgba(43,92,230,.12);transform:translateY(-2px)}
+.card .hdr{display:flex;justify-content:space-between;align-items:flex-start}
+.card .hdr .nm{font-size:17px;font-weight:700}
+.card .hdr .nm small{font-weight:400;font-size:13px;color:var(--sub);margin-left:6px}
+.card .hdr .code{font-size:12.5px;color:var(--sub);background:#f0f3f8;padding:2px 10px;border-radius:30px}
+.card .px{margin:8px 0 10px;font-size:28px;font-weight:800}
+.card .px .chg{font-size:15px;font-weight:600;margin-left:8px}
+.card .px .load{font-size:14px;font-weight:400;color:var(--sub)}
+
+/* Mini score bar */
+.scores{margin:8px 0 10px}
+.srow{display:flex;gap:8px;align-items:center;margin:4px 0}
+.srow .lb{width:48px;font-size:12.5px;color:var(--sub);flex-shrink:0}
+.srow .bar{flex:1;height:7px;background:#eef1f5;border-radius:5px;overflow:hidden}
+.srow .bar>i{display:block;height:100%;border-radius:5px}
+.srow .sv{width:22px;text-align:right;font-size:13px;font-weight:600;flex-shrink:0}
+
+/* Total score ring */
+.scr-wrap{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
+.ring{position:relative;width:56px;height:56px;flex-shrink:0}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800}
+
+.card .meta{font-size:12.5px;color:var(--sub);margin:6px 0;display:flex;gap:14px;flex-wrap:wrap}
+.card .meta b{color:var(--ink);font-weight:600}
+
+.card .link{margin-top:auto;padding-top:10px;border-top:1px solid #eef1f5}
+.card .link a{
+  display:inline-block;background:var(--brand);color:#fff;
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  text-decoration:none;transition:.2s;
+}
+.card .link a:hover{background:#1f49c4}
+.card .link .stamp{float:right;font-size:11.5px;color:var(--sub);margin-top:10px}
+
+/* Empty state */
+.empty{
+  background:#fff;border:2px dashed #d4dce8;border-radius:var(--radius);
+  padding:40px;text-align:center;margin-top:20px;
+}
+.empty .big{font-size:40px;margin-bottom:6px}
+.empty h3{font-size:18px;margin-bottom:6px}
+.empty p{color:var(--sub);font-size:14px;line-height:1.7}
+
+/* Refresh bar */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.toolbar button{
+  background:var(--brand);color:#fff;border:none;padding:8px 16px;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+  box-shadow:0 2px 8px rgba(43,92,230,.25);transition:.2s;
+}
+.toolbar button:hover{background:#1f49c4}
+.toolbar button:disabled{background:#9fb2e0;cursor:wait}
+#dashStatus{font-size:13px;color:var(--sub)}
+.pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:20px;background:#eef1f5;color:var(--sub);margin:2px 3px}
+/* Drag & drop */
+.card.dragging{opacity:.4;border-color:var(--brand)}
+.card.drag-over{border-color:var(--brand2);border-style:dashed;transform:scale(1.02)}
+.card{cursor:grab}.card:active{cursor:grabbing}
+.addbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;background:#fff;border-radius:12px;padding:12px 18px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.addbar-label{font-size:13.5px;font-weight:600;color:var(--ink)}
+.addbar input:focus,.addbar select:focus{border-color:var(--brand)}
+#btnAddStock{background:var(--brand);color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+#btnAddStock:hover{background:#1f49c4}#btnAddStock:disabled{background:#9fb2e0;cursor:wait}
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  body{padding:16px 12px}
+  .hero{padding:20px}
+}
+
+/* Footer */
+footer{text-align:center;color:var(--sub);font-size:12px;margin-top:36px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hero">
+    <h1>📊 个股三维深度分析 · 看板</h1>
+    <p>精选覆盖池 ｜ 实时行情速览 ｜ 点击卡片进入完整报告</p>
+    <span class="count" id="stockCount">覆盖 1 只股票</span>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button id="btnRefreshAll" onclick="refreshAll()">🔄 刷新全部行情</button>
+    <span id="dashStatus">点击刷新拉取所有卡片实时行情</span>
+    <span class="pill" id="dashStamp" style="margin-left:auto;font-size:11.5px;padding:3px 11px;border-radius:20px;background:#eef1f5;color:var(--sub)">最后刷新：-</span>
+  </div>
+
+  <!-- Add stock bar -->
+  <div class="addbar">
+    <span class="addbar-label">➕ 添加股票</span>
+    <input type="text" id="addCode" placeholder="代码，如 000858" maxlength="6" style="width:120px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none">
+    <select id="addMarket" style="padding:7px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;outline:none">
+      <option value="SH">沪市</option><option value="SZ" selected>深市</option>
+    </select>
+    <button id="btnAddStock" onclick="addStock()">生成分析</button>
+    <span id="addStatus" class="muted" style="font-size:12.5px"></span>
+  </div>
+
+  <!-- Stock cards -->
+  <div class="grid" id="cardGrid"></div>
+
+  <!-- Bottom hint -->
+  <div class="empty" id="addHint">
+    <div class="big">🔍</div>
+    <h3>试用一下？</h3>
+    <p>在上方输入框输入任意 A 股代码（如 000858 五粮液、600519 茅台），点击「生成分析」<br>
+    自动生成动态报告页面，卡片即刻加入看板（数据保存在浏览器中）。</p>
+  </div>
+
+  <footer>
+    个股三维深度分析看板 ｜ 数据来源：东方财富行情/资金流API · 公开财报及新闻检索<br>
+    ⚠️ 本看板仅供研究学习参考，不构成投资建议 ｜ 涨跌色按 A 股习惯（涨红跌绿）
+  </footer>
+</div>
+
+<script>
+// ========================
+// 📌 股票数据（在此添加新股票）
+// ========================
+var stocks = [
+  {
+    code: '601138',
+    name: '工业富联',
+    market: 'SH',
+    reportPath: './工业富联601138_三维深度分析报告/601138_工业富联_三维深度分析报告_20260708.html',
+    score: 6.3,
+    subScores: {fundamental: 7.5, news: 7.5, capital: 4.5, technical: 5.5},
+    mcap: '1.32万亿',
+    pe: '31.0',
+    pb: '7.47',
+    updated: '2026-07-08',
+    summary: 'AI 服务器龙头 · 2026Q1 净利翻倍 · ROE 创上市新高 · 代工毛利率约 7%'
+  },
+  {
+    code: '000988',
+    name: '华工科技',
+    market: 'SZ',
+    reportPath: './华工科技000988_三维深度分析报告/000988_华工科技_三维深度分析报告_20260708.html',
+    score: 6.8,
+    subScores: {fundamental: 7.5, news: 6.5, capital: 6.0, technical: 6.0},
+    mcap: '1497.2亿',
+    pe: '58.6',
+    pb: '13.1',
+    updated: '2026-07-08',
+    summary: 'AI 光模块第一梯队 · 激光装备龙头 · 量子点激光器布局'
+  },
+  {
+    code: '603929',
+    name: '亚翔集成',
+    market: 'SH',
+    reportPath: './亚翔集成603929_三维深度分析报告/603929_亚翔集成_三维深度分析报告_20260708.html',
+    score: 7.2,
+    subScores: {fundamental: 7.5, news: 6.5, capital: 7.0, technical: 7.0},
+    mcap: '471.7亿',
+    pe: '47.6',
+    pb: '21.7',
+    updated: '2026-07-08',
+    summary: '洁净室工程龙头 · 在手订单48.3亿 · ROE 35% · 新加坡市场占72%'
+  },
+  {
+    code: '301308',
+    name: '江波龙',
+    market: 'SZ',
+    reportPath: './江波龙301308_三维深度分析报告/301308_江波龙_三维深度分析报告_20260708.html',
+    score: 7.5,
+    subScores: {fundamental: 8.0, news: 8.0, capital: 7.0, technical: 6.0},
+    mcap: '2555.3亿',
+    pe: '16.5',
+    pb: '21.5',
+    updated: '2026-07-08',
+    summary: '国产存储模组龙头 · 2026H1 净利预增 92-110 亿 · 行业景气高涨'
+  },
+  {
+    code: '603986',
+    name: '兆易创新',
+    market: 'SH',
+    reportPath: './兆易创新603986_三维深度分析报告/603986_兆易创新_三维深度分析报告_20260708.html',
+    score: 6.5,
+    subScores: {fundamental: 7.0, news: 6.5, capital: 5.0, technical: 7.0},
+    mcap: '4294.7亿',
+    pe: '73.5',
+    pb: '17.3',
+    updated: '2026-07-08',
+    summary: '存储芯片/Nor Flash 龙头 · MCU+DRAM 布局 · 主力近期大幅流出'
+  },
+  {
+    code: '300476',
+    name: '胜宏科技',
+    market: 'SZ',
+    reportPath: './胜宏科技300476_三维深度分析报告/300476_胜宏科技_三维深度分析报告_20260708.html',
+    score: 7.0,
+    subScores: {fundamental: 8.5, news: 7.0, capital: 5.5, technical: 6.5},
+    mcap: '2781.2亿',
+    pe: '54.0',
+    pb: '17.8',
+    updated: '2026-07-08',
+    summary: 'AI PCB 龙头 · 2025 净利 43 亿 +273% · ROE 35.6% · 2026E 利润或达 100 亿'
+  },
+  {
+    code: '002916',
+    name: '深南电路',
+    market: 'SZ',
+    reportPath: './深南电路002916_三维深度分析报告/002916_深南电路_三维深度分析报告_20260708.html',
+    score: 6.5,
+    subScores: {fundamental: 7.5, news: 6.5, capital: 5.5, technical: 6.0},
+    mcap: '2766.8亿',
+    pe: '81.4',
+    pb: '16.8',
+    updated: '2026-07-08',
+    summary: 'PCB + 封装基板双龙头 · 2025 营收 236 亿 · PE 81x 估值偏高'
+  },
+  {
+    code: '688017',
+    name: '绿的谐波',
+    market: 'SH',
+    reportPath: './绿的谐波688017_三维深度分析报告/688017_绿的谐波_三维深度分析报告_20260708.html',
+    score: 5.0,
+    subScores: {fundamental: 4.5, news: 5.5, capital: 4.5, technical: 6.0},
+    mcap: '730.4亿',
+    pe: '559.5',
+    pb: '20.7',
+    updated: '2026-07-08',
+    summary: '谐波减速器龙头 · 人形机器人主题 · 业绩体量小 · PE 极高'
+  },
+  {
+    code: '002865',
+    name: '钧达股份',
+    market: 'SZ',
+    reportPath: './钧达股份002865_三维深度分析报告/002865_钧达股份_三维深度分析报告_20260708.html',
+    score: 4.0,
+    subScores: {fundamental: 3.0, news: 4.0, capital: 4.5, technical: 5.0},
+    mcap: '158.4亿',
+    pe: '279.5',
+    pb: '3.9',
+    updated: '2026-07-08',
+    summary: '光伏电池片龙头 · 2025 亏损 14 亿 · 2026E 扭亏预期 · 行业产能出清'
+  },
+  {
+    code: '600000',
+    name: '浦发银行',
+    market: 'SH',
+    reportPath: './浦发银行600000_三维深度分析报告/600000_浦发银行_三维深度分析报告_20260708.html',
+    score: 6.0,
+    subScores: {fundamental: 6.5, news: 5.5, capital: 6.0, technical: 5.0},
+    mcap: '3004.2亿',
+    pe: '4.2',
+    pb: '0.4',
+    updated: '2026-07-08',
+    summary: '全国性股份制银行 · PE 4.2x PB 0.4x · 不良率六连降 · 低估值防御'
+  },
+  {
+    code: '002475',
+    name: '立讯精密',
+    market: 'SZ',
+    reportPath: './立讯精密002475_三维深度分析报告/002475_立讯精密_三维深度分析报告_20260708.html',
+    score: 7.0,
+    subScores: {fundamental: 8.0, news: 6.5, capital: 6.5, technical: 6.0},
+    mcap: '4614.7亿',
+    pe: '31.5',
+    pb: '5.2',
+    updated: '2026-07-08',
+    summary: '消费电子精密制造龙头 · 苹果核心供应商 · 汽车电子第二曲线 · ROE 22%'
+  }
+];
+
+// ========================
+// JSONP 工具
+// ========================
+function jsonp(url, cbName, timeout){
+  return new Promise(function(resolve, reject){
+    var s=document.createElement('script');
+    var done=false;
+    var timer=setTimeout(function(){
+      if(!done){done=true; if(s.parentNode) s.parentNode.removeChild(s); reject(new Error('timeout'));}
+    }, timeout||8000);
+    window[cbName]=function(data){ if(done) return; done=true; clearTimeout(timer); if(s.parentNode) s.parentNode.removeChild(s); resolve(data); };
+    s.onerror=function(){ if(done) return; done=true; clearTimeout(timer); reject(new Error('load error')); };
+    s.src=url+(url.indexOf('?')>=0?'&':'?')+'cb='+cbName;
+    document.body.appendChild(s);
+  });
+}
+function fmtCap(v){ return v>=1e12 ? (v/1e12).toFixed(2)+'万亿' : v>=1e8 ? (v/1e8).toFixed(1)+'亿' : v.toFixed(0)+'万'; }
+
+// ========================
+// 渲染所有卡片
+// ========================
+function renderCards(){
+  var grid=document.getElementById('cardGrid');
+  grid.innerHTML='';
+  stocks.forEach(function(s,idx){
+    var secid=(s.market==='SH'?'1.':'0.')+s.code;
+    var card=document.createElement('div');
+    card.className='card';
+    card.id='card_'+idx;
+    card.draggable=true;
+    card.dataset.key=s.code+':'+s.market;
+    card.ondragstart=function(e){e.dataTransfer.setData('text/plain',this.dataset.key);setTimeout(function(){this.classList.add('dragging');}.bind(this),10);};
+    card.ondragend=function(e){this.classList.remove('dragging');document.querySelectorAll('.card.drag-over').forEach(function(c){c.classList.remove('drag-over');});};
+    card.ondragover=function(e){e.preventDefault();this.classList.add('drag-over');};
+    card.ondragleave=function(e){this.classList.remove('drag-over');};
+    card.ondrop=function(e){e.preventDefault();this.classList.remove('drag-over');var fromKey=e.dataTransfer.getData('text/plain');var toKey=this.dataset.key;if(fromKey&&toKey&&fromKey!==toKey){var fromIdx=cardOrder.indexOf(fromKey);var toIdx=cardOrder.indexOf(toKey);if(fromIdx>=0&&toIdx>=0){cardOrder.splice(fromIdx,1);cardOrder.splice(toIdx,0,fromKey);saveCardOrder();sortStocksByOrder();renderCards();}}};
+    card.innerHTML=
+      '<div class="hdr">'+
+        '<div><div class="nm">'+s.name+' <small id="s_'+idx+'_mkt">'+s.market+'</small></div></div>'+
+        '<span class="code">'+s.code+'.'+s.market+'</span>'+
+      '</div>'+
+      '<div class="px" id="s_'+idx+'_px"><span class="load">加载行情…</span></div>'+
+      '<div class="scr-wrap">'+
+        '<div class="ring">'+
+          '<svg width="56" height="56" viewBox="0 0 56 56">'+
+            '<circle cx="28" cy="28" r="22" fill="none" stroke="#eef1f5" stroke-width="6"/>'+
+            '<circle id="sr_'+idx+'" cx="28" cy="28" r="22" fill="none" stroke="'+(s.score>=6?'#2b5ce6':'#f5a623')+'" stroke-width="6" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="138"/>'+
+          '</svg>'+
+          '<div class="num" id="sn_'+idx+'" style="color:'+(s.score>=6?'#2b5ce6':'#f5a623')+'">'+s.score.toFixed(1)+'</div>'+
+        '</div>'+
+        '<div style="font-size:13px;color:var(--sub)">综合评分<br><b style="font-size:16px;color:var(--ink)">'+s.score.toFixed(1)+' / 10</b></div>'+
+      '</div>'+
+      '<div class="scores">'+
+        '<div class="srow"><span class="lb">基本面</span><div class="bar"><i style="width:'+(s.subScores.fundamental*10)+'%;background:var(--brand)"></i></div><span class="sv" style="color:var(--brand)">'+s.subScores.fundamental+'</span></div>'+
+        '<div class="srow"><span class="lb">新闻面</span><div class="bar"><i style="width:'+(s.subScores.news*10)+'%;background:var(--amber)"></i></div><span class="sv" style="color:var(--amber)">'+s.subScores.news+'</span></div>'+
+        '<div class="srow"><span class="lb">资金面</span><div class="bar"><i style="width:'+(s.subScores.capital*10)+'%;background:var(--green)"></i></div><span class="sv" style="color:var(--green)">'+s.subScores.capital+'</span></div>'+
+        '<div class="srow"><span class="lb">技术面</span><div class="bar"><i style="width:'+(s.subScores.technical*10)+'%;background:#9aa6b2"></i></div><span class="sv" style="color:#9aa6b2">'+s.subScores.technical+'</span></div>'+
+      '</div>'+
+      '<div class="meta" id="s_'+idx+'_meta">'+
+        '<span>市值 <b>'+s.mcap+'</b></span>'+
+        '<span>PE(动) <b>'+s.pe+'</b></span>'+
+        '<span>PB <b>'+s.pb+'</b></span>'+
+      '</div>'+
+      '<div style="font-size:12.5px;color:var(--sub);margin:4px 0 8px">'+s.summary+'</div>'+
+      '<div class="link">'+
+        '<a href="'+s.reportPath+'" target="_blank">📄 查看完整报告 →</a>'+
+        '<span class="stamp">更新于 '+s.updated+'</span>'+
+      '</div>';
+
+    // 动画评分环
+    grid.appendChild(card);
+    animateRing(idx, s.score);
+
+    // 拉行情
+    fetchPrice(idx, secid);
+  });
+
+  document.getElementById('stockCount').textContent='覆盖 '+stocks.length+' 只股票';
+}
+
+// ========================
+// 评分环动画
+// ========================
+function animateRing(idx, score){
+  var r=document.getElementById('sr_'+idx);
+  if(!r) return;
+  var circ=138, n=0;
+  var c=setInterval(function(){
+    n+=0.15; if(n>=score){n=score;clearInterval(c);}
+    r.setAttribute('stroke-dashoffset', circ*(1-n/10));
+  },24);
+}
+
+// ========================
+// JSONP 拉取单个股票行情
+// ========================
+function fetchPrice(idx, secid){
+  var url='https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f43,f44,f45,f46,f47,f60,f116,f162,f167';
+  jsonp(url, '__dash_'+idx+'_'+Date.now()).then(function(res){
+    if(!res || !res.data) return;
+    var d=res.data;
+    var price=d.f43/100, prev=d.f60/100, chg=price-prev, pct=chg/prev*100, up=chg>=0;
+    var pxEl=document.getElementById('s_'+idx+'_px');
+    var metaEl=document.getElementById('s_'+idx+'_meta');
+    if(pxEl){
+      pxEl.innerHTML='<span class="'+(up?'up':'down')+'">¥'+price.toFixed(2)+'</span> <span class="chg '+(up?'up':'down')+'">'+(up?'▲ ':'▼ ')+(up?'+':'')+chg.toFixed(2)+' ('+(up?'+':'')+pct.toFixed(2)+'%)</span>';
+    }
+    if(metaEl){
+      var mcap=fmtCap(d.f116);
+      var pe=(d.f162/100).toFixed(1);
+      var pb=(d.f167/100).toFixed(2);
+      metaEl.innerHTML='<span>市值 <b>'+mcap+'</b></span><span>PE(动) <b>'+pe+'</b></span><span>PB <b>'+pb+'</b></span>';
+    }
+  }).catch(function(){});
+}
+
+// ========================
+// 刷新所有行情
+// ========================
+function refreshAll(){
+  var btn=document.getElementById('btnRefreshAll');
+  var st=document.getElementById('dashStatus');
+  var stampEl=document.getElementById('dashStamp');
+  btn.disabled=true;
+  st.textContent='正在刷新所有行情…';
+  var ts=new Date();
+  var p2=function(n){return String(n).padStart(2,'0');};
+  var stamp=ts.getFullYear()+'-'+p2(ts.getMonth()+1)+'-'+p2(ts.getDate())+' '+p2(ts.getHours())+':'+p2(ts.getMinutes())+':'+p2(ts.getSeconds());
+  var promises=[];
+  stocks.forEach(function(s,idx){
+    var secid=(s.market==='SH'?'1.':'0.')+s.code;
+    promises.push(fetchPrice(idx, secid));
+  });
+  Promise.allSettled(promises).then(function(){
+    st.textContent='✅ 所有卡片行情已更新';
+    if(stampEl) stampEl.textContent='最后刷新：'+stamp;
+    btn.disabled=false;
+  });
+}
+
+// ========================
+// 动态添加股票（localStorage 持久化）
+// ========================
+// 从 localStorage 加载动态股票
+var DYNAMIC_KEY='wb_stock_dynamics';
+function loadDynamics(){
+  try{return JSON.parse(localStorage.getItem(DYNAMIC_KEY))||[]}catch(e){return []}
+}
+function saveDynamics(list){
+  try{localStorage.setItem(DYNAMIC_KEY,JSON.stringify(list))}catch(e){}
+}
+
+// 动态股票与硬编码股票合并
+var dynamicStocks=loadDynamics();
+dynamicStocks.forEach(function(ds){
+  // 避免重复
+  var exists=stocks.some(function(s){return s.code===ds.code&&s.market===ds.market;});
+  if(!exists){
+    ds.dynamic=true; // 标记为动态股票
+    ds.reportPath='./stock_viewer.html?code='+ds.code+'&market='+ds.market;
+    ds.score=6.0; ds.subScores={fundamental:5.0,news:5.0,capital:5.0,technical:5.0};
+    ds.updated=new Date().toISOString().slice(0,10);
+    ds.summary='动态生成 · 实时行情 + 资金流 · 财务数据为估算';
+    stocks.push(ds);
+  }
+});
+
+// 添加股票
+function addStock(){
+  var code=document.getElementById('addCode').value.trim();
+  var market=document.getElementById('addMarket').value;
+  var btn=document.getElementById('btnAddStock');
+  var st=document.getElementById('addStatus');
+  if(!code||code.length<6){st.textContent='请输入6位股票代码';return;}
+  // 检查是否已存在
+  if(stocks.some(function(s){return s.code===code&&s.market===market;})){
+    st.textContent='该股票已在看板中';return;
+  }
+  btn.disabled=true; st.textContent='正在验证股票代码…';
+  var secid=(market==='SH'?'1.':'0.')+code;
+  jsonp('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields=f43,f58,f116,f162,f167','_ad'+Date.now()).then(function(res){
+    if(!res||!res.data||!res.data.f58){
+      st.textContent='❌ 未找到该股票，请检查代码';btn.disabled=false;return;
+    }
+    var d=res.data;
+    var ds={code:code,market:market,name:d.f58,mcap:fmtCap(d.f116),pe:(d.f162/100).toFixed(1),pb:(d.f167/100).toFixed(2)};
+    // 保存到 localStorage
+    var list=loadDynamics();
+    list.push({code:code,market:market,name:d.f58});
+    saveDynamics(list);
+    // 添加到当前 stocks
+    ds.dynamic=true;
+    ds.reportPath='./stock_viewer.html?code='+code+'&market='+market;
+    ds.score=6.0;
+    ds.subScores={fundamental:5.0,news:5.0,capital:5.0,technical:5.0};
+    ds.updated=new Date().toISOString().slice(0,10);
+    ds.summary='动态生成 · 实时行情 + 资金流 · 财务数据为估算';
+    stocks.push(ds);
+    cardOrder.push(ds.code+':'+ds.market);
+    saveCardOrder();
+    st.textContent='✅ '+d.f58+' 已添加';
+    document.getElementById('addCode').value='';
+    renderCards();
+    refreshAll();
+    btn.disabled=false;
+  }).catch(function(){
+    st.textContent='❌ 网络错误，请重试';btn.disabled=false;
+  });
+}
+
+// ========================
+// 拖拽排序（localStorage 持久化）
+// ========================
+var ORDER_KEY='wb_stock_order';
+var cardOrder=[];
+
+function loadCardOrder(){
+  try{
+    var saved=JSON.parse(localStorage.getItem(ORDER_KEY));
+    if(saved&&saved.length){
+      // 只保留 stocks 中存在的条目，新增的自动追加
+      var valid=[];
+      saved.forEach(function(key){
+        if(stocks.some(function(s){return s.code+':'+s.market===key;})) valid.push(key);
+      });
+      stocks.forEach(function(s){
+        var key=s.code+':'+s.market;
+        if(valid.indexOf(key)===-1) valid.push(key);
+      });
+      cardOrder=valid;
+      return;
+    }
+  }catch(e){}
+  // 默认：按 stocks 原顺序
+  cardOrder=stocks.map(function(s){return s.code+':'+s.market;});
+}
+loadCardOrder();
+
+function saveCardOrder(){
+  try{localStorage.setItem(ORDER_KEY,JSON.stringify(cardOrder));}catch(e){}
+}
+
+function getCardIdx(key){
+  var idx=cardOrder.indexOf(key);
+  return idx>=0?idx:999;
+}
+
+// 重排 stocks 使其与 cardOrder 一致（用于渲染）
+function sortStocksByOrder(){
+  stocks.sort(function(a,b){
+    return getCardIdx(a.code+':'+a.market)-getCardIdx(b.code+':'+b.market);
+  });
+}
+
+// ========================
+// 初始化
+// ========================
+sortStocksByOrder();
+renderCards();
+</script>
+</body>
+</html>
