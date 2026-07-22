@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>个股三维深度分析 · 动态报告</title>
 <style>
-:root{--red:#e23b3b;--green:#1faa59;--bg:#f5f7fa;--card:#fff;--ink:#1f2733;--sub:#6b7785;--line:#e8edf2;--brand:#2b5ce6;--amber:#f5a623;--shadow:0 2px 14px rgba(20,40,80,.06)}
+:root{--red:#e23b3b;--green:#1faa59;--bg:#f5f7fa;--card:#fff;--ink:#1f2733;--sub:#6b7785;--line:#e8edf2;--brand:#2b5ce6;--brand2:#15b8a6;--amber:#f5a623;--shadow:0 2px 14px rgba(20,40,80,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;padding:26px 16px 60px;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto}
@@ -39,6 +39,17 @@ footer{text-align:center;color:var(--sub);font-size:12px;margin-top:26px;line-he
 #btnRefresh:hover{background:#1f49c4}#btnRefresh:disabled{background:#9fb2e0;cursor:wait}
 .loading{text-align:center;padding:80px 20px;font-size:16px;color:var(--sub)}.loading .spinner{display:inline-block;width:36px;height:36px;border:4px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.back-home{position:absolute;top:16px;right:18px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:24px;font-size:13px;font-weight:600;text-decoration:none;transition:.18s;z-index:3}
+.back-home:hover{background:#fff;color:#1b2a4e}
+.back-foot{display:inline-block;margin-top:4px;color:var(--brand);font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--line);padding:8px 18px;border-radius:24px;transition:.18s}
+.back-foot:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
+.news-list{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.news-list .ni{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f1f4f8;font-size:13.5px}
+.news-list .ni .badge{flex:0 0 auto;font-size:11px;padding:2px 8px;border-radius:6px;height:fit-content;margin-top:2px}
+.b-pos{background:#fdeaea;color:var(--red)}
+.b-neu{background:#eef1f5;color:var(--sub)}
+.b-neg{background:#e7f6ee;color:var(--green)}
+.news-list .ni .tx small{color:var(--sub);margin-left:6px}
 </style></head><body><div class="wrap" id="app"><div class="loading" id="loading"><div class="spinner"></div><div>正在拉取 <span id="loadCode"></span> 实时数据…</div></div></div>
 <script>
 // ====== 读参数 ======
@@ -92,7 +103,7 @@ async function loadReport(){
   var ts=now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate())+' '+p2(now.getHours())+':'+p2(now.getMinutes());
 
   app.innerHTML=
-  '<div class="hero"><span class="tag">个股三维深度分析 · '+CODE+'.'+MARKET+'</span>'+
+  '<div class="hero"><a class="back-home" href="./index.html" title="返回看板首页">← 返回主页</a><span class="tag">个股三维深度分析 · '+CODE+'.'+MARKET+'</span>'+
     '<h1>'+qd.f58+' <span style="font-weight:500;font-size:16px;opacity:.7">动态生成</span></h1>'+
     '<div class="code">代码 '+CODE+'.'+MARKET+' ｜ 动态报告 ｜ 数据实时获取</div>'+
     '<div class="price">¥'+p.toFixed(2)+' <span class="chg '+cls(cg)+'">'+a+' '+sg+cg.toFixed(2)+' ('+sg+pt.toFixed(2)+'%)</span></div>'+
@@ -135,10 +146,33 @@ async function loadReport(){
     '<li style="margin-bottom:8px">⚠️ <b>不构成投资建议</b>：本报告仅供研究学习参考，不构成任何证券买卖建议。投资决策请结合自身风险承受能力。</li>'+
   '</ul></div>'+
 
+  '<div id="newsSlot"></div>'+
+  '<div style="text-align:center;margin-top:24px"><a class="back-foot" href="./index.html">← 返回主页看板</a></div>'+
   '<footer>'+qd.f58+'（'+CODE+'.'+MARKET+'）个股动态分析报告 ｜ 生成时间 '+ts+'<br>数据来源：东方财富行情/资金流API ｜ 涨跌色按 A 股习惯（涨红跌绿）<br>⚠️ 本报告仅供研究参考，不构成投资建议。</footer>';
 
   // Update page title
   document.title=qd.f58+'('+CODE+') 动态分析报告';
+
+  // 新闻板块：匹配 news_data.json 中对应代码，有则渲染，无则给提示
+  (function renderNews(){
+    var slot=document.getElementById('newsSlot');
+    if(!slot) return;
+    var head='<div class="sec"><h2><span class="dot" style="background:var(--brand2)"></span>最新一周动态与关键新闻分析</h2>';
+    fetch('./news_data.json').then(function(r){return r.json();}).then(function(nd){
+      var d=nd[CODE];
+      if(!d){ slot.innerHTML=head+'<div class="lead">该股票暂无整理好的新闻板块。可在仓库根目录的 news_data.json 中按代码补充 summary 与 items 后查看。</div></div>'; return; }
+      var html=head+'<div class="lead">本周综述与关键新闻来自 news_data.json（公开新闻检索整理，仅供研究参考）。</div>';
+      if(d.summary){ html+='<div style="font-size:14px;line-height:1.8;margin-bottom:6px"><b>本周综述：</b>'+d.summary+'</div>'; }
+      html+='<div class="news-list">';
+      (d.items||[]).forEach(function(it){
+        var map={'pos':'利好','neu':'中性','neg':'利空'}, cls={'pos':'b-pos','neu':'b-neu','neg':'b-neg'};
+        var lab=map[it.sentiment]||'中性', bc=cls[it.sentiment]||'b-neu';
+        html+='<div class="ni"><span class="badge '+bc+'">'+lab+'</span><div class="tx"><b>'+it.title+'</b><small>'+(it.date?(' '+it.date):'')+'</small><br>'+(it.analysis||'')+'</div></div>';
+      });
+      html+='</div></div>';
+      slot.innerHTML=html;
+    }).catch(function(){ slot.innerHTML=head+'<div class="lead">未能加载 news_data.json（若以本地文件方式打开可能受浏览器同源限制）。通过服务器（如 GitHub Pages）访问即可正常显示。</div></div>'; });
+  })();
 }
 
 loadReport();
