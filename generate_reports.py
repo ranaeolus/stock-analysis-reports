@@ -2,6 +2,15 @@
 """批量生成个股三维深度分析报告"""
 import os, json, math
 
+# 最新一周新闻数据（由 news_data.json 提供，key 为股票代码）
+NEWS_DATA = {}
+_NEWS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "news_data.json")
+try:
+    with open(_NEWS_PATH, encoding="utf-8") as _f:
+        NEWS_DATA = json.load(_f)
+except Exception:
+    NEWS_DATA = {}
+
 BASE = r"D:\20250703 数据留存\7. Workbuddy\7.0 XURAN的Skill库\个人产出"
 
 stocks = [
@@ -447,6 +456,25 @@ def gen_report(s):
   pos_pct = round((s["price"]-est_low)/rng*100,1) if rng>0 else 50
   pos_label = "偏低区" if pos_pct < 33 else "中枢区" if pos_pct < 66 else "偏高区"
 
+  # 最新一周动态与关键新闻分析（来自 news_data.json）
+  news = NEWS_DATA.get(s.get("code"))
+  if news:
+    _items = ""
+    for _it in news.get("items", []):
+      _badge = {"pos":"b-pos","neu":"b-neu","neg":"b-neg"}.get(_it.get("sentiment"),"b-neu")
+      _items += '<div class="ni"><span class="badge %s">%s</span><div class="tx"><b>%s</b><small> · %s</small><br>%s</div></div>\n' % (_badge, _it.get("title",""), _it.get("title",""), _it.get("date",""), _it.get("analysis",""))
+    newsHtml = (
+      '  <div class="sec">\n'
+      '    <h2><span class="dot" style="background:var(--brand2)"></span>最新一周动态与关键新闻分析</h2>\n'
+      '    <div class="lead">截至 2026-07-22 的近一周公开资讯梳理（来源：东方财富/同花顺等公开新闻检索，仅供研究参考）。</div>\n'
+      '    <div style="font-size:14px;line-height:1.8;margin-bottom:6px"><b>本周综述：</b>' + news.get("summary","") + '</div>\n'
+      '    <div class="news-list">\n' + _items + '    </div>\n'
+      '    <div class="note">⚠️ 以上为公开新闻的归纳与客观转述，不代表本方观点，亦不构成投资建议。新闻时效性较强，请以最新公告为准。</div>\n'
+      '  </div>\n'
+    )
+  else:
+    newsHtml = ""
+
   html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -643,6 +671,7 @@ footer{{text-align:center;color:var(--sub);font-size:12px;margin-top:26px;line-h
     </ul>
   </div>
 
+{newsHtml}
   <footer>
     {s['name']}（{s['code']}.{s['market']}）个股三维深度分析报告 ｜ 生成日期 2026-07-08<br>
     数据来源：东方财富行情/资金流API、公司定期报告及公开新闻检索 ｜ 涨跌色按 A 股习惯（涨红跌绿）<br>

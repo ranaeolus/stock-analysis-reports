@@ -77,6 +77,8 @@ body{
 }
 .card .link a:hover{background:#1f49c4}
 .card .link .stamp{float:right;font-size:11.5px;color:var(--sub);margin-top:10px}
+.card .del{width:26px;height:26px;border-radius:50%;border:1px solid #e2e8f0;background:#fff;color:#9aa6b2;font-size:13px;line-height:1;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+.card .del:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* Empty state */
 .empty{
@@ -351,7 +353,10 @@ function renderCards(){
     card.innerHTML=
       '<div class="hdr">'+
         '<div><div class="nm">'+s.name+' <small id="s_'+idx+'_mkt">'+s.market+'</small></div></div>'+
-        '<span class="code">'+s.code+'.'+s.market+'</span>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span class="code">'+s.code+'.'+s.market+'</span>'+
+          '<button class="del" title="从看板删除该股票">✕</button>'+
+        '</div>'+
       '</div>'+
       '<div class="px" id="s_'+idx+'_px"><span class="load">加载行情…</span></div>'+
       '<div class="scr-wrap">'+
@@ -464,6 +469,26 @@ function saveDynamics(list){
   try{localStorage.setItem(DYNAMIC_KEY,JSON.stringify(list))}catch(e){}
 }
 
+// ========================
+// 已删除股票（localStorage 持久化）
+// ========================
+var DELETED_KEY='wb_stock_deleted';
+function loadDeleted(){try{return JSON.parse(localStorage.getItem(DELETED_KEY))||[]}catch(e){return []}}
+function saveDeleted(l){try{localStorage.setItem(DELETED_KEY,JSON.stringify(l))}catch(e){}}
+
+// 删除股票：同时清理动态股票与排序，并记入已删除集合（硬编码股票删除后刷新仍不出现）
+function delStock(key){
+  var del=loadDeleted();
+  if(del.indexOf(key)<0) del.push(key);
+  saveDeleted(del);
+  stocks=stocks.filter(function(s){return s.code+':'+s.market!==key;});
+  var dl=loadDynamics();
+  saveDynamics(dl.filter(function(x){return x.code+':'+x.market!==key;}));
+  cardOrder=cardOrder.filter(function(k){return k!==key;});
+  saveCardOrder();
+  renderCards();
+}
+
 // 动态股票与硬编码股票合并
 var dynamicStocks=loadDynamics();
 dynamicStocks.forEach(function(ds){
@@ -478,6 +503,10 @@ dynamicStocks.forEach(function(ds){
     stocks.push(ds);
   }
 });
+
+// 过滤已在本地删除的股票（硬编码与动态均生效）
+var deleted=loadDeleted();
+stocks=stocks.filter(function(s){return deleted.indexOf(s.code+':'+s.market)<0;});
 
 // 添加股票
 function addStock(){
@@ -569,6 +598,13 @@ function sortStocksByOrder(){
 // ========================
 // 初始化
 // ========================
+// 卡片删除按钮（事件委托）
+document.getElementById('cardGrid').addEventListener('click', function(e){
+  if(e.target.classList.contains('del')){
+    var key=e.target.closest('.card').dataset.key;
+    if(confirm('确定从看板删除「'+key+'」？（刷新后仍不会显示，可在浏览器清除本站数据恢复）')) delStock(key);
+  }
+});
 sortStocksByOrder();
 renderCards();
 </script>
