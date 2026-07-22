@@ -81,11 +81,16 @@ footer{text-align:center;color:var(--sub);font-size:12px;margin-top:26px;line-he
 #btnRefresh{background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(43,92,230,.3);transition:.2s}
 #btnRefresh:hover{background:#1f49c4}
 #btnRefresh:disabled{background:#9fb2e0;cursor:wait;box-shadow:none}
+.back-home{position:absolute;top:16px;right:18px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:24px;font-size:13px;font-weight:600;text-decoration:none;transition:.18s;z-index:3}
+.back-home:hover{background:#fff;color:#1b2a4e}
+.back-foot{display:inline-block;margin-top:4px;color:var(--brand);font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--line);padding:8px 18px;border-radius:24px;transition:.18s}
+.back-foot:hover{background:var(--brand);color:#fff;border-color:var(--brand)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hero">
+    <a class="back-home" href="../index.html" title="返回看板首页">← 返回主页</a>
     <span class="tag">个股三维深度分析 · A股</span>
     <h1>华工科技 <span style="font-weight:500">光模块/激光设备</span></h1>
     <div class="code">代码 000988.SZ ｜ SZ交所 ｜ 数据截至 2026-07-08 盘中</div>
@@ -223,6 +228,7 @@ footer{text-align:center;color:var(--sub);font-size:12px;margin-top:26px;line-he
     </div>
     <div class="note">⚠️ 以上为公开新闻的归纳与客观转述，不代表本方观点，亦不构成投资建议。新闻时效性较强，请以最新公告为准。</div>
   </div>
+  <div style="text-align:center;margin-top:24px"><a class="back-foot" href="../index.html">← 返回主页看板</a></div>
   <footer>
     华工科技（000988.SZ）个股三维深度分析报告 ｜ 生成日期 2026-07-08<br>
     数据来源：东方财富行情/资金流API、公司定期报告及公开新闻检索 ｜ 涨跌色按 A 股习惯（涨红跌绿）<br>
